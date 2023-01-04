@@ -1,24 +1,42 @@
+#!/usr/bin/env python
+
+import sys
+import re
+import json
+
+infile = "day12-input"
+
+number_re = re.compile(r"(?<![\"\d-])-?\d+(?![\"\d])")
+
+def extract_numbers(text):
+    return [int(x) for x in number_re.findall(text)]
+
+def remove_red_objects(input_obj):
+    if isinstance(input_obj, dict):
+        return remove_red_objects_from_dict(input_obj)
+    elif isinstance(input_obj, list):
+        return remove_red_objects_from_list(input_obj)
+    else:
+        return input_obj
+
+def remove_red_objects_from_dict(input_dict):
+    assert isinstance(input_dict, dict)
+    output_dict = {}
+    if "red" not in input_dict.values():
+        for k, v in input_dict.items():
+            output_dict[k] = remove_red_objects(v)
+    return output_dict
+
+def remove_red_objects_from_list(input_list):
+    assert isinstance(input_list, list)
+    output_list = []
+    for v in input_list:
+        output_list.append(remove_red_objects(v))
+    return output_list
+
 def get_lines(input: str) -> list:
     with open(input) as f:
         return f.read().rstrip().split('\n')
-
-def part1(s: str):
-    sign = 1
-    curr = 0
-    total = 0
-    for c in s:
-        if c == '-':
-            sign = -1
-        elif c in '0123456789':
-            curr = 10*curr + int(c)
-        else:
-            total += sign * curr
-            curr = 0
-            sign = 1
-    if curr > 0:
-        total += sign * curr
-    return total
-
 
 def test_part1():
     data = [
@@ -39,52 +57,6 @@ def test_part1():
         except AssertionError:
             print(f'{s=}, {expected=}, {actual=}')
 
-def part2(s: str) -> int:
-    sign = 1
-    curr = 0
-    total = 0
-    n = len(s)
-    print(n)
-    i = 0
-    while i < n:
-        c = s[i]
-        level = 0
-        if c == '{':  # start of an object
-            stack = [c]
-            level += 1
-            j = i + 1
-            while level > 0:
-                while j < n and s[j] != '}':
-                    stack.append(s[j])
-                    if s[j] == '{':
-                        level += 1
-                    j += 1
-                # Now pop everything until seeing '{'
-                buf = []
-                while stack[-1] != '{':
-                    buf.append(stack.pop())
-                stack.pop()  # pop the '{'
-                level -= 1
-                t = ''.join(reversed(buf))
-                print(t)
-                if ':"red"' not in t:
-                    total += part1(t)
-
-            i = j + 1
-            continue
-        elif c == '-':
-            sign = -1
-        elif c in '0123456789':
-            curr = 10*curr + int(c)
-        else:
-            total += sign * curr
-            curr = 0
-            sign = 1
-        i += 1
-    if curr > 0:
-        total += sign * curr
-    return total
-
 def test_part2():
     data = [
         ('[1,{"c":"red","b":2},3]', 4),
@@ -98,22 +70,29 @@ def test_part2():
         except AssertionError:
             print(f'{s=}, {expected=}, {actual=}')
 
-def simplify(line: str) -> str:
-    import re
-    pattern_template = r',*"[a-z]":"{}",*'
-    colors = ['blue', 'green', 'orange', 'yellow', 'violet']
-    for c in colors + ['red']:
-        line = line.replace(f',"{c}"', '').replace(f'"{c}",', '')
-    for c in colors:
-        line = re.sub(pattern_template.format(c), '', line)
-    print(line.count('red'))
-    return line
+
+def part2(input: str):
+    print('Part 2')
+    input_obj = json.loads(input)
+    stripped_obj = remove_red_objects(input_obj)
+    stripped_text = json.dumps(stripped_obj)
+    numbers = extract_numbers(stripped_text)
+    total = sum(numbers)
+    print(f'Found {len(numbers)} numbers in the stripped input')
+    print(f'Sum is {total}')
+
+
+def part1(input: str):
+    numbers = extract_numbers(input)
+    total = sum(numbers)
+    print(f'Found {len(numbers)} numbers in the input')
+    print(f'Sum is {total}')
+
 
 if __name__ == '__main__':
     # test_part2()
     lines = get_lines('12.txt')
-    line = lines[0]
-    # print(part1(line))
-    # print(part2(line))
-    print(simplify(line))
-    print(part2(simplify((line))))
+    input = lines[0]
+    part1(input)
+
+    part2(input)
